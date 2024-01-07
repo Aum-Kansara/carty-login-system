@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <!-- Link to Google Fonts - Choose a stylish font from https://fonts.google.com/ -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,700&display=swap">
+    <title>Cary Copilot - Document Upload</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .custom-form {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-form h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #007bff;
+        }
+
+        .custom-form h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2daa80c0;
+        }
+
+        .custom-form label {
+            font-weight: bold;
+        }
+
+        .custom-file-input {
+            display: none;
+        }
+
+        .custom-file-label {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .custom-file-label::after {
+            content: "Browse";
+        }
+
+        .custom-file-input:focus+.custom-file-label {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            display: block;
+            margin: 0 auto;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+
+        .brand-logo {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 50%; /* Rounded logo */
+            transition: transform 0.3s ease-in-out; /* Animation on hover */
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .brand-logo:hover {
+            transform: scale(1.1); /* Enlarge on hover */
+        }
+
+        #uploading-animation {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #success-message {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #28a745;
+        }
+
+        #selected-documents {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #document-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            color: #495057;
+        }
+    </style>
+</head>
+
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <div class="container">
+        <div class="custom-form">
+            {% if current_user.is_authenticated %}
+                <h3>Welcome {{ current_user.username }}</h3>
+            
+            <img src="https://yt3.ggpht.com/9dd4R7a5rotG3AJ3hZOfMSAsD7yWzVuWE4aJWUuL-XIATuuajpiolbpokST12cpCsBerlwx3HQ=s176-c-k-c0x00ffffff-no-rj-mo" alt="Brand Logo" class="brand-logo">
+            <h2>Carty Copilot</h2>
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="documentFiles">Upload Documents</label>
+                    <div class="input-group">
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="documentFiles" name="documentFiles"
+                                multiple accept=".txt,.pdf,.docx" required>
+                            <label class="custom-file-label" for="documentFiles">Choose files</label>
+                        </div>
+                    </div>
+                    <small id="fileHelp" class="form-text text-muted">Supported file formats : <b>.txt , .pdf , .docx</b></small>
+                </div>
+                <button type="submit" class="btn btn-primary" onclick="uploadDocuments()">Submit</button>
+            </form>
+            <a href="{{url_for('logout')}}" class="logout-btn">Logout</a>
+            <div id="uploading-animation">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Uploading...</span>
+                </div>
+                <p>Uploading...</p>
+            </div>
+            <!-- Display selected documents -->
+            <div id="selected-documents">
+                <h5>Selected Documents:</h5>
+                <ul id="document-list"></ul>
+            </div>
+            <div id="success-message">
+                <p>Upload successful!</p>
+            </div>
+                <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+                    integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+                    crossorigin="anonymous"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+                    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+                    crossorigin="anonymous"></script>
+                <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+                    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+                    crossorigin="anonymous"></script>
+                <script>
+                    function uploadDocuments() {
+                        var fileList = document.getElementById('documentFiles').files;
+
+                        if (fileList.length === 0) {
+                            alert('Please select at least one document.');
+                            return;
+                        }
+                        // Show uploading animation
+                        document.getElementById('uploadForm').style.display = 'none';
+                        document.getElementById('uploading-animation').style.display = 'block';
+                    }
+
+                    // Display selected file names
+                    document.getElementById('documentFiles').addEventListener('change', function (event) {
+                        var fileList = event.target.files;
+                        var fileNameList = Array.from(fileList).map(function (file) {
+                            return file.name;
+                        });
+                        document.querySelector('.custom-file-label').textContent = fileNameList.join(', ') || 'Choose files';
+                        // Display selected documents below the file input field
+                        displaySelectedDocuments();
+                    });
+
+                    function displaySelectedDocuments() {
+                        var fileList = document.getElementById('documentFiles').files;
+                        var documentListElement = document.getElementById('document-list');
+                        documentListElement.innerHTML = ''; // Clear previous list
+
+                        if (fileList.length > 0) {
+                            document.getElementById('selected-documents').style.display = 'block';
+                            for (var i = 0; i < fileList.length; i++) {
+                                var listItem = document.createElement('li');
+                                listItem.textContent = fileList[i].name;
+                                documentListElement.appendChild(listItem);
+                            }
+                        } else {
+                            document.getElementById('selected-documents').style.display = 'none';
+                        }
+                    }
+                </script>
+            {% else %}
+                <img src="https://yt3.ggpht.com/9dd4R7a5rotG3AJ3hZOfMSAsD7yWzVuWE4aJWUuL-XIATuuajpiolbpokST12cpCsBerlwx3HQ=s176-c-k-c0x00ffffff-no-rj-mo" alt="Brand Logo" class="brand-logo">
+                <h2>Carty Copilot</h2>
+                <button type="button" class="btn btn-primary"><a href="{{url_for('login')}}" style="text-align: center;
+                    font-size: 18px;
+                    text-decoration: none;
+                    margin-bottom: 20px;
+                    color: #eeeeee;">Get Started</a></button>
+            {% endif %}
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>
